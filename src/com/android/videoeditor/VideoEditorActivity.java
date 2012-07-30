@@ -137,6 +137,10 @@ public class VideoEditorActivity extends VideoEditorBaseActivity
     // Threshold in width dip for showing title in action bar.
     private static final int SHOW_TITLE_THRESHOLD_WIDTH_DIP = 1000;
 
+    // To store the export progress when the activity is destroyed
+    private static final String EXPORT_PROGRESS  = "export_progress";
+    private int mExportProgress;
+
     private final TimelineRelativeLayout.LayoutCallback mLayoutCallback =
         new TimelineRelativeLayout.LayoutCallback() {
 
@@ -392,9 +396,11 @@ public class VideoEditorActivity extends VideoEditorBaseActivity
             mRestartPreview = savedInstanceState.getBoolean(STATE_PLAYING);
             mCaptureMediaUri = savedInstanceState.getParcelable(STATE_CAPTURE_URI);
             mMediaLayoutSelectedPos = savedInstanceState.getInt(STATE_SELECTED_POS_ID, -1);
+            mExportProgress = savedInstanceState.getInt(EXPORT_PROGRESS);
         } else {
             mRestartPreview = false;
             mMediaLayoutSelectedPos = -1;
+            mExportProgress = 0;
         }
 
         // Compute the activity width
@@ -492,6 +498,7 @@ public class VideoEditorActivity extends VideoEditorBaseActivity
         outState.putBoolean(STATE_PLAYING, isPreviewPlaying() || mRestartPreview);
         outState.putParcelable(STATE_CAPTURE_URI, mCaptureMediaUri);
         outState.putInt(STATE_SELECTED_POS_ID, mMediaLayout.getSelectedViewPos());
+        outState.putInt(EXPORT_PROGRESS,mExportProgress);
     }
 
     @Override
@@ -637,6 +644,7 @@ public class VideoEditorActivity extends VideoEditorBaseActivity
 
             case R.id.menu_item_export_movie: {
                 // Present the user with a dialog to choose export options
+                mExportProgress = 0;
                 showDialog(DIALOG_EXPORT_OPTIONS_ID);
                 return true;
             }
@@ -1444,6 +1452,7 @@ public class VideoEditorActivity extends VideoEditorBaseActivity
     @Override
     protected void onExportProgress(int progress) {
         if (mExportProgressDialog != null) {
+            mExportProgress = progress;
             mExportProgressDialog.setProgress(progress);
         }
     }
@@ -1453,6 +1462,7 @@ public class VideoEditorActivity extends VideoEditorBaseActivity
         if (mExportProgressDialog != null) {
             mExportProgressDialog.dismiss();
             mExportProgressDialog = null;
+            mExportProgress = 0;
         }
     }
 
@@ -1660,11 +1670,15 @@ public class VideoEditorActivity extends VideoEditorBaseActivity
         mExportProgressDialog.setCanceledOnTouchOutside(false);
         mExportProgressDialog.show();
         mExportProgressDialog.setProgressNumberFormat("");
+        if (mExportProgress >= 0 && mExportProgress <= 100) {
+            mExportProgressDialog.setProgress(mExportProgress);
+        }
     }
 
     private void cancelExport() {
         ApiService.cancelExportVideoEditor(VideoEditorActivity.this, mProjectPath,
                 mPendingExportFilename);
+        mExportProgress = 0;
         mPendingExportFilename = null;
         mExportProgressDialog = null;
     }
